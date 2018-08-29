@@ -9,8 +9,10 @@ class Moderation(BotModule):
     description = 'Moderation tools for moderators.'
 
     help_text = '**These tools are only available for moderators/admins. \n' \
-                '`!mod warn [userid] [reason] [evidence] - to issue a warning to a user. \n ' \
-                '`!mod ban [userid] [reason] [time] - to issue a **temporary** ban to a user. To issue a permaban, use builtin Discord tools. \n '
+                '`!mod warn [user_mention] [reason] - to issue a warning to a user. \n ' \
+                '`!mod seal [user_mention] [reason] - to seal an incident. That incident will no longer count ' \
+                'towards the user\'s total infractions, but will still be viewable. \n ' \
+                '`!mod lookup [user#1234] - to look up a user\'s infractions.'
 
     infraction_limit = 10
 
@@ -24,17 +26,21 @@ class Moderation(BotModule):
 
     logging_channel = '123456789012345678'
 
-    def safe_cached_name(self, server, id): # Only use this function to refresh during an incident recall
-        refresh = server.get_member(id)
-        if refresh is None:
-            return 0
-        else:
-            return refresh
+    moderation_roles = ['moderators', 'admins'] # Only people with these roles can issue a warning
 
     def total_infractions(self, id):
         table = self.module_db.table('warnings')
         target = Query()
         return table.count(target.accusedid == id)
+
+    def is_allowed(self, server, user):
+        server_roles = server.roles
+        server_roles_str = [x.name for x in server_roles]
+        role = [i for i, x in enumerate(server_roles_str) if x in self.moderation_roles] # Straight from roles.py
+        if len(role) == 0:
+            return False
+        else:
+            return True
 
     def has_one_mention(self, message):
         if len(message.mentions) == 1:
@@ -44,8 +50,12 @@ class Moderation(BotModule):
 
     async def parse_command(self, message, client):
         target = Query()
+        if not is_allowed(message.server, message.author):
+            send_message = "[!] Sorry, moderation tools are only available for moderators."
+            await client.send_message(message.channel, send_message)
+            return 0
         msg = shlex.split(message.content)
-        mod_name = server.get_member(message.author.id)
+        mod_name = str(message.author)
         if msg[1] == 'warn':
             table = self.module_db.table('warnings')
             if len(msg) >= 3 and self.has_one_mention(message):
@@ -56,7 +66,7 @@ class Moderation(BotModule):
                 cached_name = str(message.mentions[0])
                 incident_id = table.insert({'modid': message.author.id, 'accusedid': message.mentions[0].id,
                                             'cachedname': cached_name, 'reason': msg[3], 'evidence': msg[4],
-                                            'time': time.time()})
+                                            'time': time.time(), 'sealed': False, 'sealed_reason': ''})
                 embed = discord.Embed(title="Case #" + incident_id, description="Incident report",
                                       color=0xffff00)
                 embed.add_field(name="User", value=cached_name, inline=True)
@@ -67,7 +77,24 @@ class Moderation(BotModule):
             else:
                 send_message = "[!] Missing arguments."
                 await client.send_message(message.channel, send_message)
+                return 0
         elif msg[1] == 'seal':
-            pass
+            table = self.module_db.table('warnings')
+            if len(msg) >= 3:
+                if not table.contains(doc_ids=[msg[2]]):
+                    send_message = "[!] Could not find incident."
+                    await client.send_message(message.channel, send_message)
+                    return 0
+                try:
+                    reason = msg[3]
+                except IndexError:
+                    reason = "No reason given..."
+                db.update({'sealed': True, 'sealed_reason': reason})
+                send_message = "[:ok_hand:] Sealed record."
+                await client.send_message(message.channel, send_message)
+            else:
+                send_message = "[!] Invalid arguments."
+                await client.send_message(message.channel, send_message)
+                return 0
         else:
             pass
