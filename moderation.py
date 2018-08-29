@@ -49,6 +49,12 @@ class Moderation(BotModule):
             return False
 
     async def parse_command(self, message, client):
+        logging_channel = message.server.get_channel(self.logging_channel)
+        if logging_channel is None:
+            send_message = "[!] I can't find the logging channel. I won't be processing this incident, " \
+                           "please fix before continuing."
+            await client.send_message(message.channel, send_message)
+            return 0
         target = Query()
         if not is_allowed(message.server, message.author):
             send_message = "[!] Sorry, moderation tools are only available for moderators."
@@ -65,7 +71,7 @@ class Moderation(BotModule):
                     reason = "No reason given..."
                 cached_name = str(message.mentions[0])
                 incident_id = table.insert({'modid': message.author.id, 'accusedid': message.mentions[0].id,
-                                            'cachedname': cached_name, 'reason': msg[3], 'evidence': msg[4],
+                                            'cachedname': cached_name, 'reason': msg[3],
                                             'time': time.time(), 'sealed': False, 'sealed_reason': ''})
                 embed = discord.Embed(title="Case #" + incident_id, description="Incident report",
                                       color=0xffff00)
@@ -73,7 +79,8 @@ class Moderation(BotModule):
                 embed.add_field(name="Mod responsible", value=mod_name, inline=True)
                 embed.add_field(name="Reason given", value=msg[3], inline=True)
                 embed.set_footer(text="Infractions: " + total_infractions(msg[2]))
-                await client.send_message(message.channel, embed=embed)
+                await client.send_message(logging_channel, embed=embed)
+                warn_message= message.mentions[0].mention + ", you have received a warning. Reason: " + msg[3]
             else:
                 send_message = "[!] Missing arguments."
                 await client.send_message(message.channel, send_message)
