@@ -48,7 +48,11 @@ class Moderation(BotModule):
         mod_name = server.get_member(message.author.id)
         if msg[1] == 'warn':
             table = self.module_db.table('warnings')
-            if len(msg) >= 4 and self.has_one_mention(message):
+            if len(msg) >= 3 and self.has_one_mention(message):
+                try:
+                    reason = msg[3]
+                except IndexError:
+                    reason = "No reason given..."
                 cached_name = str(message.mentions[0])
                 incident_id = table.insert({'modid': message.author.id, 'accusedid': message.mentions[0].id,
                                             'cachedname': cached_name, 'reason': msg[3], 'evidence': msg[4],
@@ -63,7 +67,7 @@ class Moderation(BotModule):
             else:
                 send_message = "[!] Missing arguments."
                 await client.send_message(message.channel, send_message)
-        elif msg[1] == 'ban':
-            table = self.module_db.table('warnings')
+        elif msg[1] == 'seal':
+            pass
         else:
             pass
