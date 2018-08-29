@@ -78,7 +78,7 @@ class Moderation(BotModule):
                 embed.add_field(name="User", value=cached_name, inline=True)
                 embed.add_field(name="Mod responsible", value=mod_name, inline=True)
                 embed.add_field(name="Reason given", value=msg[3], inline=True)
-                embed.set_footer(text="Infractions: " + total_infractions(msg[2]))
+                embed.set_footer(text="Infractions: " + self.total_infractions(msg[2]))
                 await client.send_message(logging_channel, embed=embed)
                 warn_message= message.mentions[0].mention + ", you have received a warning. Reason: " + msg[3]
             else:
@@ -96,7 +96,7 @@ class Moderation(BotModule):
                     reason = msg[3]
                 except IndexError:
                     reason = "No reason given..."
-                db.update({'sealed': True, 'sealed_reason': reason})
+                table.update({'sealed': True, 'sealed_reason': reason})
                 send_message = "[:ok_hand:] Sealed record."
                 await client.send_message(message.channel, send_message)
             else:
