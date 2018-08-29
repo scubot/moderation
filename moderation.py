@@ -36,6 +36,11 @@ class Moderation(BotModule):
         target = Query()
         return table.count(target.accusedid == id)
 
+    def has_one_mention(self, message):
+        if len(message.mentions) == 1:
+            return True
+        else:
+            return False
 
     async def parse_command(self, message, client):
         target = Query()
@@ -43,15 +48,16 @@ class Moderation(BotModule):
         mod_name = server.get_member(message.author.id)
         if msg[1] == 'warn':
             table = self.module_db.table('warnings')
-            if len(msg) >= 4:
-                cached_name = message.server.get_member(msg[2])
-                incident_id = table.insert({'modid': message.author.id, 'accusedid': msg[2], 'cachedname': cached_name, 'reason': msg[3], 'evidence': msg[4], 'time': time.time()})
+            if len(msg) >= 4 and self.has_one_mention(message):
+                cached_name = str(message.mentions[0])
+                incident_id = table.insert({'modid': message.author.id, 'accusedid': message.mentions[0].id,
+                                            'cachedname': cached_name, 'reason': msg[3], 'evidence': msg[4],
+                                            'time': time.time()})
                 embed = discord.Embed(title="Case #" + incident_id, description="Incident report",
                                       color=0xffff00)
                 embed.add_field(name="User", value=cached_name, inline=True)
                 embed.add_field(name="Mod responsible", value=mod_name, inline=True)
                 embed.add_field(name="Reason given", value=msg[3], inline=True)
-                embed.add_field(name="Mod responsible", value=mod_name, inline=True)
                 embed.set_footer(text="Infractions: " + total_infractions(msg[2]))
                 await client.send_message(message.channel, embed=embed)
             else:
