@@ -14,11 +14,11 @@ class Moderation(BotModule):
                 '`!mod warn [user_mention] [reason] - to issue a warning to a user. \n ' \
                 '`!mod seal [user_mention] [reason] - to seal an incident. That incident will no longer count ' \
                 'towards the user\'s total infractions, but will still be viewable. \n ' \
-                '`!mod lookup [user#1234] - to look up a user\'s infractions.'
+                '`!mod incident [incident_id] - to look up a specific incident. \n'
 
     infraction_limit = 10
 
-    silent_mode = True # With silent mode on, no alerts will be issued.
+    silent_mode = True # With silent mode on, no alerts will be issued. This does nothing right now
 
     trigger_string = 'mod'
 
@@ -112,6 +112,33 @@ class Moderation(BotModule):
                 table.update({'sealed': True, 'sealed_reason': reason}, doc_ids=[int(msg[2])])
                 send_message = "[:ok_hand:] Sealed record."
                 await client.send_message(message.channel, send_message)
+            else:
+                send_message = "[!] Invalid arguments."
+                await client.send_message(message.channel, send_message)
+                return 0
+        elif msg[1] == 'incident':
+            table = self.module_db.table('warnings')
+            entry = table.get(doc_id=int(msg[2]))
+            if len(msg) == 3:
+                if not entry:
+                    send_message = "[!] Could not find incident."
+                    await client.send_message(message.channel, send_message)
+                    return 0
+                if entry['sealed']:
+                    col = 0x00ff00
+                else:
+                    col = 0xffff00
+                embed = discord.Embed(title="Case #" + msg[2], description="Incident report (lookup)",
+                                      color=col)
+                embed.add_field(name="User", value=entry['cachedname'], inline=True)
+                embed.add_field(name="Mod responsible",
+                                value=str(await client.get_user_info(entry['modid'])), inline=True)
+                embed.add_field(name="Reason given", value=entry['reason'], inline=True)
+                if entry['sealed']:
+                    embed.add_field(name="Reason incident was sealed", value=entry['sealed_reason'], inline=True)
+                embed.set_footer(text="Infractions: "
+                                      + str(self.total_infractions(entry['accusedid'])))
+                await client.send_message(message.channel, embed=embed)
             else:
                 send_message = "[!] Invalid arguments."
                 await client.send_message(message.channel, send_message)
