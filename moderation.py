@@ -85,12 +85,12 @@ class Moderation(BotModule):
                 incident_id = table.insert({'modid': message.author.id, 'accusedid': message.mentions[0].id,
                                             'cachedname': cached_name, 'reason': msg[3],
                                             'time': time.time(), 'sealed': False, 'sealed_reason': ''})
-                embed = discord.Embed(title="Case #" + incident_id, description="Incident report",
+                embed = discord.Embed(title="Case #" + str(incident_id), description="Incident report",
                                       color=0xffff00)
                 embed.add_field(name="User", value=cached_name, inline=True)
                 embed.add_field(name="Mod responsible", value=mod_name, inline=True)
                 embed.add_field(name="Reason given", value=msg[3], inline=True)
-                embed.set_footer(text="Infractions: " + self.total_infractions(msg[2]))
+                embed.set_footer(text="Infractions: " + str(self.total_infractions(message.mentions[0].id)))
                 await client.send_message(logging_channel, embed=embed)
                 warn_message = message.mentions[0].mention + ", you have received a warning. Reason: " + msg[3]
                 await client.send_message(message.channel, warn_message)
@@ -101,7 +101,7 @@ class Moderation(BotModule):
         elif msg[1] == 'seal':
             table = self.module_db.table('warnings')
             if len(msg) >= 3:
-                if not table.contains(doc_ids=[msg[2]]):
+                if not table.contains(doc_ids=[int(msg[2])]):
                     send_message = "[!] Could not find incident."
                     await client.send_message(message.channel, send_message)
                     return 0
@@ -109,7 +109,7 @@ class Moderation(BotModule):
                     reason = msg[3]
                 except IndexError:
                     reason = "No reason given..."
-                table.update({'sealed': True, 'sealed_reason': reason})
+                table.update({'sealed': True, 'sealed_reason': reason}, doc_ids=[int(msg[2])])
                 send_message = "[:ok_hand:] Sealed record."
                 await client.send_message(message.channel, send_message)
             else:
