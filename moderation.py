@@ -2,6 +2,8 @@ import discord
 from modules.botModule import *
 import shlex
 import time
+from tinydb import TinyDB, Query
+
 
 class Moderation(BotModule):
     name = 'moderation'
@@ -24,14 +26,23 @@ class Moderation(BotModule):
 
     listen_for_reaction = False
 
-    logging_channel = '123456789012345678'
+    logging_channel = '186155941119524864'
 
     moderation_roles = ['moderators', 'admins'] # Only people with these roles can issue a warning
 
     def total_infractions(self, id):
         table = self.module_db.table('warnings')
         target = Query()
-        return table.count(target.accusedid == id)
+        count = 0
+        search = table.search(target.accusedid == id)
+        if not search:
+            return count
+        for entry in table.search(target.accusedid == id):
+            if entry['sealed']:
+                pass
+            else:
+                count += 1
+        return count
 
     def is_allowed(self, server, user):
         server_roles = server.roles
@@ -42,7 +53,8 @@ class Moderation(BotModule):
         else:
             return True
 
-    def has_one_mention(self, message):
+    @staticmethod
+    def has_one_mention(message):
         if len(message.mentions) == 1:
             return True
         else:
@@ -56,7 +68,7 @@ class Moderation(BotModule):
             await client.send_message(message.channel, send_message)
             return 0
         target = Query()
-        if not is_allowed(message.server, message.author):
+        if not self.is_allowed(message.server, message.author):
             send_message = "[!] Sorry, moderation tools are only available for moderators."
             await client.send_message(message.channel, send_message)
             return 0
@@ -80,7 +92,8 @@ class Moderation(BotModule):
                 embed.add_field(name="Reason given", value=msg[3], inline=True)
                 embed.set_footer(text="Infractions: " + self.total_infractions(msg[2]))
                 await client.send_message(logging_channel, embed=embed)
-                warn_message= message.mentions[0].mention + ", you have received a warning. Reason: " + msg[3]
+                warn_message = message.mentions[0].mention + ", you have received a warning. Reason: " + msg[3]
+                await client.send_message(message.channel, warn_message)
             else:
                 send_message = "[!] Missing arguments."
                 await client.send_message(message.channel, send_message)
