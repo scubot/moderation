@@ -16,7 +16,7 @@ class Moderation(BotModule):
                 'towards the user\'s total infractions, but will still be viewable. \n ' \
                 '`!mod incident [incident_id] - to look up a specific incident. \n'
 
-    infraction_limit = 10
+    infraction_limit = 3
 
     silent_mode = True # With silent mode on, no alerts will be issued. This does nothing right now
 
@@ -90,10 +90,14 @@ class Moderation(BotModule):
                 embed.add_field(name="User", value=cached_name, inline=True)
                 embed.add_field(name="Mod responsible", value=mod_name, inline=True)
                 embed.add_field(name="Reason given", value=msg[3], inline=True)
-                embed.set_footer(text="Infractions: " + str(self.total_infractions(message.mentions[0].id)))
+                total_infractions_count = self.total_infractions(message.mentions[0].id)
+                embed.set_footer(text="Infractions: " + str(total_infractions_count))
                 await client.send_message(logging_channel, embed=embed)
                 warn_message = message.mentions[0].mention + ", you have received a warning. Reason: " + msg[3]
                 await client.send_message(message.channel, warn_message)
+                if total_infractions_count >= self.infraction_limit:
+                    limit_message = "**Alert:** User " + cached_name + " has exceeded the infraction limit."
+                    await client.send_message(logging_channel, limit_message)
             else:
                 send_message = "[!] Missing arguments."
                 await client.send_message(message.channel, send_message)
