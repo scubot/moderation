@@ -84,7 +84,7 @@ class Moderation(BotModule):
                 cached_name = str(message.mentions[0])
                 incident_id = table.insert({'modid': message.author.id, 'accusedid': message.mentions[0].id,
                                             'cachedname': cached_name, 'reason': msg[3],
-                                            'time': time.time(), 'sealed': False, 'sealed_reason': ''})
+                                            'time': time.time(), 'sealed': False, 'sealed_reason': '', 'seal_modid': ''})
                 embed = discord.Embed(title="Case #" + str(incident_id), description="Incident report",
                                       color=0xffff00)
                 embed.add_field(name="User", value=cached_name, inline=True)
@@ -117,9 +117,12 @@ class Moderation(BotModule):
                     send_message = "[!] Record is already sealed."
                     await client.send_message(message.channel, send_message)
                     return 0
-                table.update({'sealed': True, 'sealed_reason': reason}, doc_ids=[int(msg[2])])
+                table.update({'sealed': True, 'sealed_reason': reason, 'seal_modid': message.author.id},
+                             doc_ids=[int(msg[2])])
                 send_message = "[:ok_hand:] Sealed record."
                 await client.send_message(message.channel, send_message)
+                seal_message = "Incident #" + msg[2] + " was sealed by " + str(message.author) + ". Reason: " + reason
+                await client.send_message(logging_channel, seal_message)
             else:
                 send_message = "[!] Invalid arguments."
                 await client.send_message(message.channel, send_message)
