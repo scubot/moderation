@@ -10,7 +10,7 @@ class Moderation(BotModule):
 
     description = 'Moderation tools for moderators.'
 
-    help_text = '**These tools are only available for moderators/admins. \n' \
+    help_text = '**These tools are only available for moderators/admins.** \n' \
                 '`!mod warn [user_mention] [reason] - to issue a warning to a user. \n ' \
                 '`!mod seal [user_mention] [reason] - to seal an incident. That incident will no longer count ' \
                 'towards the user\'s total infractions, but will still be viewable. \n ' \
