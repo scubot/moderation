@@ -113,6 +113,10 @@ class Moderation(BotModule):
                     reason = msg[3]
                 except IndexError:
                     reason = "No reason given..."
+                if table.get(doc_id=int(msg[2]))['sealed']:
+                    send_message = "[!] Record is already sealed."
+                    await client.send_message(message.channel, send_message)
+                    return 0
                 table.update({'sealed': True, 'sealed_reason': reason}, doc_ids=[int(msg[2])])
                 send_message = "[:ok_hand:] Sealed record."
                 await client.send_message(message.channel, send_message)
