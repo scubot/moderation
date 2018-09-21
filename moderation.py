@@ -22,13 +22,13 @@ class Moderation(BotModule):
 
     trigger_string = 'mod'
 
-    module_version = '1.0.0'
+    module_version = '1.1.0'
 
     listen_for_reaction = False
 
     logging_channel = '186155941119524864'
 
-    moderation_roles = ['moderators', 'admins'] # Only people with these roles can issue a warning
+    moderation_roles = ['moderators', 'admins']  # Only people with these roles can issue a warning
 
     def total_infractions(self, id):
         table = self.module_db.table('warnings')
@@ -72,28 +72,28 @@ class Moderation(BotModule):
             send_message = "[!] Sorry, moderation tools are only available for moderators."
             await client.send_message(message.channel, send_message)
             return 0
-        msg = shlex.split(message.content)
+        msg = self.parse_subcommand(message.content)
         mod_name = str(message.author)
-        if msg[1] == 'warn':
+        if 'warn' in msg[0]:
             table = self.module_db.table('warnings')
             if len(msg) >= 3 and self.has_one_mention(message):
                 try:
-                    reason = msg[3]
-                except IndexError:
+                    reason = msg[1]['reason']
+                except KeyError:
                     reason = "No reason given..."
                 cached_name = str(message.mentions[0])
                 incident_id = table.insert({'modid': message.author.id, 'accusedid': message.mentions[0].id,
-                                            'cachedname': cached_name, 'reason': msg[3],
+                                            'cachedname': cached_name, 'reason': reason,
                                             'time': time.time(), 'sealed': False, 'sealed_reason': '', 'seal_modid': ''})
                 embed = discord.Embed(title="Case #" + str(incident_id), description="Incident report",
                                       color=0xffff00)
                 embed.add_field(name="User", value=cached_name, inline=True)
                 embed.add_field(name="Mod responsible", value=mod_name, inline=True)
-                embed.add_field(name="Reason given", value=msg[3], inline=True)
+                embed.add_field(name="Reason given", value=reason, inline=True)
                 total_infractions_count = self.total_infractions(message.mentions[0].id)
                 embed.set_footer(text="Infractions: " + str(total_infractions_count))
                 await client.send_message(logging_channel, embed=embed)
-                warn_message = message.mentions[0].mention + ", you have received a warning. Reason: " + msg[3]
+                warn_message = message.mentions[0].mention + ", you have received a warning. Reason: " + reason
                 await client.send_message(message.channel, warn_message)
                 if total_infractions_count >= self.infraction_limit:
                     limit_message = "**Alert:** User " + cached_name + " has exceeded the infraction limit."
@@ -102,26 +102,27 @@ class Moderation(BotModule):
                 send_message = "[!] Missing arguments."
                 await client.send_message(message.channel, send_message)
                 return 0
-        elif msg[1] == 'seal':
+        elif 'seal' in msg[0]:
             table = self.module_db.table('warnings')
-            if len(msg) >= 3:
-                if not table.contains(doc_ids=[int(msg[2])]):
+            if self.check_parameters(msg[1], ['id']):
+                if not table.contains(doc_ids=[int(msg[1]['id'])]):
                     send_message = "[!] Could not find incident."
                     await client.send_message(message.channel, send_message)
                     return 0
                 try:
-                    reason = msg[3]
-                except IndexError:
+                    reason = msg[1]['reason']
+                except KeyError:
                     reason = "No reason given..."
-                if table.get(doc_id=int(msg[2]))['sealed']:
+                if table.get(doc_id=int(msg[1]['id']))['sealed']:
                     send_message = "[!] Record is already sealed."
                     await client.send_message(message.channel, send_message)
                     return 0
                 table.update({'sealed': True, 'sealed_reason': reason, 'seal_modid': message.author.id},
-                             doc_ids=[int(msg[2])])
+                             doc_ids=[int(msg[1]['id'])])
                 send_message = "[:ok_hand:] Sealed record."
                 await client.send_message(message.channel, send_message)
-                seal_message = "Incident #" + msg[2] + " was sealed by " + str(message.author) + ". Reason: " + reason
+                seal_message = "Incident #" + msg[1]['id'] + " was sealed by "\
+                               + str(message.author) + ". Reason: " + reason
                 await client.send_message(logging_channel, seal_message)
             else:
                 send_message = "[!] Invalid arguments."
@@ -129,8 +130,8 @@ class Moderation(BotModule):
                 return 0
         elif msg[1] == 'incident':
             table = self.module_db.table('warnings')
-            entry = table.get(doc_id=int(msg[2]))
-            if len(msg) == 3:
+            entry = table.get(doc_id=int(msg[1]['id']))
+            if self.check_parameters(msg[1], ['id']):
                 if not entry:
                     send_message = "[!] Could not find incident."
                     await client.send_message(message.channel, send_message)
@@ -139,7 +140,7 @@ class Moderation(BotModule):
                     col = 0x00ff00
                 else:
                     col = 0xffff00
-                embed = discord.Embed(title="Case #" + msg[2], description="Incident report (lookup)",
+                embed = discord.Embed(title="Case #" + msg[1]['id'], description="Incident report (lookup)",
                                       color=col)
                 embed.add_field(name="User", value=entry['cachedname'], inline=True)
                 embed.add_field(name="Mod responsible",
