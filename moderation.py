@@ -44,14 +44,12 @@ class Moderation(BotModule):
                 count += 1
         return count
 
-    def is_allowed(self, server, user):
-        server_roles = server.roles
-        server_roles_str = [x.name for x in server_roles]
-        role = [i for i, x in enumerate(server_roles_str) if x in self.moderation_roles] # Straight from roles.py
-        if len(role) == 0:
-            return False
-        else:
-            return True
+    def is_allowed(self, message):
+        user_roles = [x.name for x in message.author.roles]
+        for role in self.moderation_roles:
+            if role in user_roles:
+                return True
+        return False
 
     @staticmethod
     def has_one_mention(message):
@@ -68,7 +66,7 @@ class Moderation(BotModule):
             await client.send_message(message.channel, send_message)
             return 0
         target = Query()
-        if not self.is_allowed(message.server, message.author):
+        if not self.is_allowed(message):
             send_message = "[!] Sorry, moderation tools are only available for moderators."
             await client.send_message(message.channel, send_message)
             return 0
