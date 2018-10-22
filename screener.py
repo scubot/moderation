@@ -45,7 +45,7 @@ class Screener(BotModule):
 
     async def parse_command(self, message, client):
         if message.channel.id != self.screen_channel:
-            pass
+            return
         msg = shlex.split(message.content)
         if len(msg) > 1 and msg[1].isdigit():
             response = int(msg[1])
@@ -58,5 +58,5 @@ class Screener(BotModule):
         send_message = "**Welcome to the SCUBA diving discord, " + member.mention + ".** \n" \
                        "For verification purposes please complete the challenge below. \n" \
                        + text + "\n " \
-                       "You may respond with !screen [your answer]."
+                       "You may respond with !screen [your answer]. Please give a numeric answer."
         await client.send_message(client.get_channel(self.screen_channel), send_message)
