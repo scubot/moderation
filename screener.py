@@ -29,14 +29,6 @@ class Screener(BotModule):
 
     challenge_responses = {}
 
-    @staticmethod
-    def is_number(num):
-        try:
-            int(num)
-            return True
-        except ValueError:
-            return False
-
     def generate_challenge(self, member):
         number_1 = random.randint(1, 10)
         number_2 = random.randint(1, 10)
@@ -55,7 +47,7 @@ class Screener(BotModule):
         if message.channel.id != self.screen_channel:
             pass
         msg = shlex.split(message.content)
-        if len(msg) > 1 and self.is_number(msg[1]):
+        if len(msg) > 1 and msg[1].isdigit():
             response = int(msg[1])
             if self.challenge_responses[message.author.id] == response:
                 await self.verify(message, client)
@@ -63,7 +55,7 @@ class Screener(BotModule):
     async def on_member_join(self, member, client):
         # TODO: save a list of verified members in DB, skip verification if re-entry
         text = self.generate_challenge(member)
-        send_message = "**Welcome to the SCUBA diving discord, " + member.mention + "!** \n" \
+        send_message = "**Welcome to the SCUBA diving discord, " + member.mention + ".** \n" \
                        "For verification purposes please complete the challenge below. \n" \
                        + text + "\n " \
                        "You may respond with !screen [your answer]."
